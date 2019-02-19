@@ -3,12 +3,16 @@ Bundler.require :default
 require "minitest/autorun"
 require "minitest/pride"
 
+Thread.report_on_exception = false
+
 class UnknownTimeoutError < StandardError; end
 
 class Minitest::Test
   def assert_timeout(exception = UnknownTimeoutError, timeout: 1)
     started_at = Time.now
-    assert_raises(exception) { yield }
+    ex = assert_raises(exception) { yield }
+    # test exact class
+    assert_equal exception, ex.class
     time = Time.now - started_at
     # p time
     assert_operator time, :>=, timeout
@@ -17,7 +21,7 @@ class Minitest::Test
 
   def assert_threaded_timeout(exception = UnknownTimeoutError, timeout: 1)
     threads = []
-    2.times do |i|
+    2.times do
       threads << Thread.new { yield }
     end
     assert_timeout(exception, timeout: timeout) do
@@ -47,5 +51,9 @@ class Minitest::Test
 
   def read_url
     "http://#{read_host_and_port}"
+  end
+
+  def travis?
+    ENV["TRAVIS"]
   end
 end
